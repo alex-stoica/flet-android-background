@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+build/
+evidence/
+*.egg-info/
+.pytest_cache/
+.dart_tool/
+.flutter-plugins-dependencies
+tests/flutter/pubspec.lock

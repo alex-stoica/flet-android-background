@@ -1,0 +1,11 @@
+[project]
+name = "background-lab-workspace"
+version = "0.0.1"
+requires-python = ">=3.11"
+dependencies = ["flet-android-background", "flet-android-notifications==0.11.2"]
+
+[dependency-groups]
+dev = ["flet-cli==1.0.3"]
+
+[tool.uv.sources]
+flet-android-background = { path = "package", editable = true }
