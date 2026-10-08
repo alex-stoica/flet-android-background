@@ -1,12 +1,12 @@
 [project]
 name = "flet-android-background"
-version = "0.0.1"
+version = "0.0.2"
 description = "Experimental foreground tasks for Flet on Android"
 readme = "README.md"
 license = "MIT"
 authors = [{name = "Alex Stoica", email = "alexstoica@protonmail.com"}]
 requires-python = ">=3.11"
-dependencies = ["flet==1.0.3"]
+dependencies = ["flet>=0.82.0,<2.0.0"]
 classifiers = ["Development Status :: 3 - Alpha"]
 
 [project.urls]

@@ -1,7 +1,7 @@
 name: background_lifecycle_tests
 publish_to: none
 environment:
-  sdk: '>=3.12.0 <4.0.0'
+  sdk: '>=3.11.0 <4.0.0'
 dependencies:
   flet_android_background:
     path: ../../package/src/flutter/flet_android_background

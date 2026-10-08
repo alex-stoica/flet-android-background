@@ -69,6 +69,8 @@ async def main(page: ft.Page):
     status = ft.Text("Ready", size=24)
     details = ft.Text()
     last_status = None
+    visible = asyncio.Event()
+    visible.set()
 
     def refresh():
         nonlocal last_status
@@ -83,11 +85,15 @@ async def main(page: ft.Page):
 
     async def live_status():
         while True:
-            await page.wait_until_visible()
+            await visible.wait()
             refresh()
             await asyncio.sleep(1)
 
-    def lifecycle(e):
+    async def lifecycle(e):
+        if e.state == ft.AppLifecycleState.RESUME:
+            visible.set()
+        else:
+            visible.clear()
         if e.state == ft.AppLifecycleState.DETACH:
             ui_task.cancel()
 

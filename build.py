@@ -4,10 +4,14 @@ import os
 import re
 import shutil
 import subprocess
+import sys
+import tomllib
 import zipfile
+from importlib.metadata import version
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
+release = tomllib.loads((ROOT / "package/pyproject.toml").read_text())["project"]["version"]
 parser = argparse.ArgumentParser()
 parser.add_argument("variant", choices=["standalone", "combined"])
 parser.add_argument("--wheel", type=Path)
@@ -16,7 +20,7 @@ combined = options.variant == "combined"
 app = ROOT / "build" / options.variant
 app.mkdir(parents=True, exist_ok=True)
 (app / "main.py").write_text(f"INTEGRATED = {combined}\n" + (ROOT / "demo.py").read_text(), encoding="utf-8")
-dependencies = ['"flet==1.0.3"', '"flet-android-background"']
+dependencies = [f'"flet=={version("flet")}"', '"flet-android-background"']
 if options.wheel:
     dependencies[1] = f'"flet-android-background @ {options.wheel.resolve().as_uri()}"'
 development = "" if options.wheel else f'''[tool.flet.dev_packages]
@@ -27,12 +31,14 @@ if combined:
 (app / "pyproject.toml").write_text(f'''
 [project]
 name = "background-{options.variant}"
-version = "0.0.1"
+version = "{release}"
 requires-python = ">=3.11"
 dependencies = [{", ".join(dependencies)}]
 [tool.flet]
 product = "Background {"Combined" if combined else "Only"}"
 bundle_id = "dev.alexstoica.background.{options.variant}"
+[tool.flet.compile]
+app = false
 [tool.flet.app]
 exclude = ["build", "generate.log"]
 [tool.flet.flutter.pubspec.dependency_overrides]
@@ -43,8 +49,8 @@ os.environ["PYTHONIOENCODING"] = "utf-8"
 print(f"Building {options.variant}; log: {app / 'generate.log'}", flush=True)
 with (app / "generate.log").open("w", encoding="utf-8") as log:
     result = subprocess.run(
-        ["flet", "build", "apk", "--arch", "arm64-v8a", "--no-rich-output", "--yes",
-         "--skip-flutter-doctor", "--no-compile-app", "--flutter-build-args=--debug", "-v"],
+        [sys.executable, "-m", "flet.cli", "build", "apk", "--arch", "arm64-v8a", "--no-rich-output", "--yes",
+         "--skip-flutter-doctor", "--flutter-build-args=--debug", "-v"],
         cwd=app, stdout=log, stderr=subprocess.STDOUT,
     )
 if result.returncode:
@@ -61,16 +67,20 @@ flutter = os.environ.get("FLUTTER_BIN") or shutil.which("flutter")
 if not flutter:
     raise SystemExit("Set FLUTTER_BIN or add Flutter to PATH.")
 env = dict(os.environ, SERIOUS_PYTHON_APP=str(app / "build/python-app"),
-           SERIOUS_PYTHON_SITE_PACKAGES=str(app / "build/site-packages"),
-           SERIOUS_PYTHON_VERSION=(app / "build/.python-version").read_text().strip())
-subprocess.run([flutter, "build", "apk", "--debug", "--build-name", "0.0.1",
+           SERIOUS_PYTHON_SITE_PACKAGES=str(app / "build/site-packages"))
+python_version = app / "build/.python-version"
+if python_version.exists():
+    env["SERIOUS_PYTHON_VERSION"] = python_version.read_text().strip()
+subprocess.run([flutter, "build", "apk", "--debug", "--build-name", release,
                 "--target-platform", "android-arm64"],
                cwd=app / "build/flutter", env=env, check=True)
 apk = ROOT / "build" / f"{options.variant}.apk"
 shutil.copy2(app / "build/flutter/build/app/outputs/flutter-apk/app-debug.apk", apk)
 with zipfile.ZipFile(apk) as archive:
-    for name in ("app", "stdlib", "sitepackages"):
-        with zipfile.ZipFile(io.BytesIO(archive.read(f"assets/{name}.zip"))) as contents:
+    for name in archive.namelist():
+        if not name.endswith((".zip", "/libpythonsitepackages.so")):
+            continue
+        with zipfile.ZipFile(io.BytesIO(archive.read(name))) as contents:
             if contents.testzip() is not None:
                 raise RuntimeError(f"Corrupt {name} archive")
 print(apk)
