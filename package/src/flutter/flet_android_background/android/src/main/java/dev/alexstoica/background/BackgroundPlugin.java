@@ -54,7 +54,10 @@ public class BackgroundPlugin implements FlutterPlugin, ActivityAware,
                         .putExtra("id", ((Number) call.argument("id")).intValue())
                         .putExtra("title", (String) call.argument("title"))
                         .putExtra("body", (String) call.argument("body"))
-                        .putExtra("enable_wifi_lock", Boolean.TRUE.equals(call.argument("enable_wifi_lock")));
+                        .putExtra("enable_wifi_lock", Boolean.TRUE.equals(call.argument("enable_wifi_lock")))
+                        .putExtra("enable_cpu_lock", Boolean.TRUE.equals(call.argument("enable_cpu_lock")))
+                        .putExtra("cpu_lock_timeout", call.argument("cpu_lock_timeout") == null ? 3600L
+                            : ((Number) call.argument("cpu_lock_timeout")).longValue());
                     token = call.argument("owner");
                     if (token == null) throw new IllegalArgumentException("Missing service owner");
                     TaskService.owner = this;

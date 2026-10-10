@@ -91,6 +91,17 @@ void main() {
     }
   });
 
+  test('bounded CPU lock options reach the platform channel', () async {
+    final token = await first.invoke('start', {
+      'enable_cpu_lock': true, 'cpu_lock_timeout': 60,
+    }) as String;
+    expect(calls.last.arguments['enable_cpu_lock'], true);
+    expect(calls.last.arguments['cpu_lock_timeout'], 60);
+    await first.invoke('stop', {});
+    await stopped(token);
+    expect(BackgroundService.owner, isNull);
+  });
+
   test('native start failure releases ownership', () async {
     messenger.setMockMethodCallHandler(channel, (_) async {
       throw PlatformException(code: 'denied');

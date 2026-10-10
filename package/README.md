@@ -5,7 +5,7 @@ Experimental; no process-death recovery. Pip install.
 Create `BackgroundTask` per page; set `page.on_close = task.on_session_close`.
 Use `await task.start(work, enable_wifi_lock=True)` and `await task.stop()`.
 WifiLock: default off; released on exit. Android 14+: foreground/screen-on only;
-Doze applies. Bundles `WAKE_LOCK`; no CPU lock.
+Power policies apply. `WAKE_LOCK` bundled.
 
 Before building:
 

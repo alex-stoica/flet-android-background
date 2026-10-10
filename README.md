@@ -13,7 +13,7 @@ async def main(page):
 
     async def start(e):
         if await task.service.request_permissions():
-            await task.start(lambda: asyncio.sleep(60))
+            await task.start(lambda: asyncio.sleep(30), enable_cpu_lock=True, cpu_lock_timeout=60)
 
     page.add(
         ft.Button("Start", on_click=start),
@@ -22,8 +22,6 @@ async def main(page):
 
 ft.run(main)
 ```
-
-Both demos passed controlled Doze tests on Samsung Galaxy S25.
 
 With uv, Java 17, Android SDK, and Flutter available:
 

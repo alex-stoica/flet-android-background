@@ -108,6 +108,9 @@ async def main(page: ft.Page):
             await close(e)
 
     wifi_lock = ft.Switch(label="Request WifiLock", value=False)
+    cpu_lock = ft.Switch(label="Keep CPU awake", value=False)
+    cpu_timeout = ft.TextField(label="CPU lock timeout (seconds)", value="1200",
+                               keyboard_type=ft.KeyboardType.NUMBER)
 
     async def start(e):
         try:
@@ -115,11 +118,14 @@ async def main(page: ft.Page):
                 status.value = "Allow notifications to start"
                 page.update()
                 return
-            log("start_requested", enable_wifi_lock=wifi_lock.value)
+            timeout = int(cpu_timeout.value)
+            log("start_requested", enable_wifi_lock=wifi_lock.value,
+                enable_cpu_lock=cpu_lock.value, cpu_lock_timeout=timeout)
             await runner.start(
                 heartbeat, on_stop=cleanup, notification_id=41,
                 title=page.title, body="Python heartbeat is running",
                 enable_wifi_lock=wifi_lock.value,
+                enable_cpu_lock=cpu_lock.value, cpu_lock_timeout=timeout,
             )
             if notifications is not None:
                 await notifications.show_notification(
@@ -139,7 +145,7 @@ async def main(page: ft.Page):
 
     page.add(
         ft.Text(page.title.upper(), size=14, color=ft.Colors.CYAN_300),
-        status, details, wifi_lock,
+        status, details, wifi_lock, cpu_lock, cpu_timeout,
         ft.Row([ft.Button("Start", on_click=start), ft.Button("Stop", on_click=stop)]),
         ft.Text("Status updates automatically, including after unlocking.\n"
                 "A heartbeat is recorded every 2 seconds; internet is checked every 5 beats."),
