@@ -16,6 +16,7 @@ class BackgroundTask:
         self._task: asyncio.Task[None] | None = None
         self._work: asyncio.Task[None] | None = None
         self._lock = asyncio.Lock()
+        self._session_closed = False
 
     @property
     def running(self) -> bool:
@@ -25,6 +26,7 @@ class BackgroundTask:
                     **notification) -> bool:
         """Start once after notification permission; duplicates return False."""
         async with self._lock:
+            self._check_session()
             if self.running:
                 return False
             self.error = None
@@ -35,6 +37,7 @@ class BackgroundTask:
                 self._task = asyncio.create_task(self._rollback(starting))
                 await asyncio.shield(self._task)
                 raise
+            self._check_session()
             if failure is not None:
                 raise failure
             self._work = asyncio.create_task(self._invoke(work))
@@ -53,7 +56,7 @@ class BackgroundTask:
     async def _rollback(self, starting):
         try:
             self.error = await starting
-            if self.error is None:
+            if self.error is None and not self._session_closed:
                 await self.service.stop_foreground_service()
         except Exception as exc:
             self.error = exc
@@ -73,7 +76,8 @@ class BackgroundTask:
                 self.error = self.error or exc
             finally:
                 try:
-                    await self.service.stop_foreground_service()
+                    if not self._session_closed:
+                        await self.service.stop_foreground_service()
                 except Exception as exc:
                     self.error = self.error or exc
 
@@ -84,6 +88,15 @@ class BackgroundTask:
                 if self._work is not None:
                     self._work.cancel()
                 await asyncio.shield(self._task)
+
+    def _check_session(self):
+        if self._session_closed:
+            raise RuntimeError("Flet session closed; create a new BackgroundTask")
+
+    async def on_session_close(self, event=None):
+        """Cancel Python work after session loss; native teardown stops the service."""
+        self._session_closed = True
+        await self.stop()
 
     async def _stopped(self, event):
         async with self._lock:

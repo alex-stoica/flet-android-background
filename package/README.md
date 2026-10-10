@@ -1,13 +1,13 @@
 # flet-android-background
 
-Experimental Flet Android tasks; one owns the foreground service.
-Locking permits continued execution; Android restrictions still apply.
-Dismissal or runtime loss stops the service. Process death has no recovery.
+Experimental; no process-death recovery. Pip install.
 
-Install the wheel with pip. Add `BackgroundTask` to your Flet app, then
-`await task.start(work)` or `await task.stop()`.
+Create `BackgroundTask` per page; set `page.on_close = task.on_session_close`.
+Use `await task.start(work, enable_wifi_lock=True)` and `await task.stop()`.
+WifiLock: default off; released on exit. Android 14+: foreground/screen-on only;
+Doze applies. Bundles `WAKE_LOCK`; no CPU lock.
 
-Before building the generated Flutter project:
+Before building:
 
 ```python
 from flet_android_background.android import configure_android_project
@@ -15,5 +15,4 @@ from flet_android_background.android import configure_android_project
 configure_android_project(path, service_type="dataSync")
 ```
 
-Supported types: `dataSync`, `shortService`, `specialUse`. The latter requires
-an app-specific `subtype` explanation. Android time limits apply.
+Types: `dataSync`, `shortService`, `specialUse` (requires `subtype`). Time limits apply.

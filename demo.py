@@ -10,10 +10,6 @@ import flet as ft
 from flet_android_background import BackgroundTask
 
 LOG = Path(os.environ.get("FLET_APP_STORAGE_DATA", ".")) / "heartbeats.jsonl"
-runner = None
-count = 0
-last_network = "Not checked"
-notifications = None
 
 
 def record(event, **details):
@@ -30,42 +26,48 @@ def check_network():
         return str(response.status)
 
 
-async def heartbeat():
-    global count, last_network
-    record("started")
-    while True:
-        count += 1
-        record("heartbeat", count=count)
-        if count % 5 == 0:
-            try:
-                last_network = await asyncio.to_thread(check_network)
-            except Exception as exc:
-                last_network = str(exc)
-            record("network", result=last_network)
-        await asyncio.sleep(2)
-
-
-async def cleanup():
-    record("cleanup", count=count)
-    if notifications is not None:
-        await notifications.show_notification(
-            notification_id=42, title="Task finished",
-            body=f"Recorded {count} Python heartbeats", channel_id="results",
-            channel_name="Task results",
-        )
-
-
 async def main(page: ft.Page):
-    global runner, notifications
     page.title = "Background + Notifications" if INTEGRATED else "Background Only"
     page.padding = 24
     page.theme_mode = ft.ThemeMode.DARK
-    if runner is None:
-        runner = BackgroundTask()
-        record("launch")
-    if INTEGRATED and notifications is None:
+    runner = BackgroundTask()
+    count = 0
+    last_network = "Not checked"
+    notifications = None
+    closing = False
+    session_id = page.session.id
+
+    def log(event, **details):
+        record(event, session=session_id, **details)
+
+    log("launch")
+    if INTEGRATED:
         from flet_android_notifications import FletAndroidNotifications
         notifications = FletAndroidNotifications()
+
+    async def heartbeat():
+        nonlocal count, last_network
+        log("started")
+        while True:
+            count += 1
+            log("heartbeat", count=count)
+            if count % 5 == 0:
+                try:
+                    last_network = await asyncio.to_thread(check_network)
+                except Exception as exc:
+                    last_network = str(exc)
+                log("network", result=last_network)
+            await asyncio.sleep(2)
+
+    async def cleanup():
+        log("cleanup", count=count)
+        if notifications is not None and not closing:
+            await notifications.show_notification(
+                notification_id=42, title="Task finished",
+                body=f"Recorded {count} Python heartbeats", channel_id="results",
+                channel_name="Task results",
+            )
+
     status = ft.Text("Ready", size=24)
     details = ft.Text()
     last_status = None
@@ -89,13 +91,21 @@ async def main(page: ft.Page):
             refresh()
             await asyncio.sleep(1)
 
+    async def close(e=None):
+        nonlocal closing
+        closing = True
+        visible.clear()
+        ui_task.cancel()
+        await runner.on_session_close(e)
+        log("session_closed")
+
     async def lifecycle(e):
         if e.state == ft.AppLifecycleState.RESUME:
             visible.set()
         else:
             visible.clear()
         if e.state == ft.AppLifecycleState.DETACH:
-            ui_task.cancel()
+            await close(e)
 
     wifi_lock = ft.Switch(label="Request WifiLock", value=False)
 
@@ -105,7 +115,7 @@ async def main(page: ft.Page):
                 status.value = "Allow notifications to start"
                 page.update()
                 return
-            record("start_requested", enable_wifi_lock=wifi_lock.value)
+            log("start_requested", enable_wifi_lock=wifi_lock.value)
             await runner.start(
                 heartbeat, on_stop=cleanup, notification_id=41,
                 title=page.title, body="Python heartbeat is running",
@@ -119,7 +129,7 @@ async def main(page: ft.Page):
                 )
             refresh()
         except Exception as exc:
-            record("start_error", error=str(exc))
+            log("start_error", error=str(exc))
             status.value = str(exc)
             page.update()
 
@@ -139,7 +149,8 @@ async def main(page: ft.Page):
     refresh()
     ui_task = page.run_task(live_status)
     page.on_app_lifecycle_state_change = lifecycle
-    page.on_close = lambda e: ui_task.cancel()
+    page.on_close = close
 
 
-ft.run(main)
+if __name__ == "__main__":
+    ft.run(main)

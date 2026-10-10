@@ -9,9 +9,9 @@ from flet_android_background import BackgroundTask
 
 async def main(page):
     task = BackgroundTask()
+    page.on_close = task.on_session_close
 
     async def start(e):
-        # Runs while locked if Android permits. Dismissal or process death stops it. No recovery.
         if await task.service.request_permissions():
             await task.start(lambda: asyncio.sleep(60))
 
