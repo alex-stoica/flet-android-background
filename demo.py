@@ -97,15 +97,19 @@ async def main(page: ft.Page):
         if e.state == ft.AppLifecycleState.DETACH:
             ui_task.cancel()
 
+    wifi_lock = ft.Switch(label="Request WifiLock", value=False)
+
     async def start(e):
         try:
             if not await runner.service.request_permissions():
                 status.value = "Allow notifications to start"
                 page.update()
                 return
+            record("start_requested", enable_wifi_lock=wifi_lock.value)
             await runner.start(
                 heartbeat, on_stop=cleanup, notification_id=41,
                 title=page.title, body="Python heartbeat is running",
+                enable_wifi_lock=wifi_lock.value,
             )
             if notifications is not None:
                 await notifications.show_notification(
@@ -125,7 +129,7 @@ async def main(page: ft.Page):
 
     page.add(
         ft.Text(page.title.upper(), size=14, color=ft.Colors.CYAN_300),
-        status, details,
+        status, details, wifi_lock,
         ft.Row([ft.Button("Start", on_click=start), ft.Button("Stop", on_click=stop)]),
         ft.Text("Status updates automatically, including after unlocking.\n"
                 "A heartbeat is recorded every 2 seconds; internet is checked every 5 beats."),

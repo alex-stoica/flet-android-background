@@ -81,6 +81,16 @@ void main() {
     expect(firstControl.events, [token]);
   });
 
+  test('WifiLock option crosses the platform channel unchanged', () async {
+    for (final enabled in [false, true]) {
+      final token = await first.invoke('start', {'enable_wifi_lock': enabled}) as String;
+      expect(calls.last.arguments['enable_wifi_lock'], enabled);
+      await first.invoke('stop', {});
+      await stopped(token);
+      expect(BackgroundService.owner, isNull);
+    }
+  });
+
   test('native start failure releases ownership', () async {
     messenger.setMockMethodCallHandler(channel, (_) async {
       throw PlatformException(code: 'denied');

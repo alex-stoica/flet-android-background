@@ -53,7 +53,8 @@ public class BackgroundPlugin implements FlutterPlugin, ActivityAware,
                     Intent intent = new Intent(context, TaskService.class)
                         .putExtra("id", ((Number) call.argument("id")).intValue())
                         .putExtra("title", (String) call.argument("title"))
-                        .putExtra("body", (String) call.argument("body"));
+                        .putExtra("body", (String) call.argument("body"))
+                        .putExtra("enable_wifi_lock", Boolean.TRUE.equals(call.argument("enable_wifi_lock")));
                     token = call.argument("owner");
                     if (token == null) throw new IllegalArgumentException("Missing service owner");
                     TaskService.owner = this;

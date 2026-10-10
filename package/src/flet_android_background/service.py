@@ -16,10 +16,16 @@ class ForegroundService(ft.Service):
         return await self._call("permission")
 
     async def start_foreground_service(self, *, notification_id=1,
-                                       title="Background task", body="Running"):
+                                       title="Background task", body="Running",
+                                       enable_wifi_lock: bool = False):
         if notification_id <= 0:
             raise ValueError("notification_id must be positive")
-        self._owner = await self._call("start", id=notification_id, title=title, body=body)
+        if not isinstance(enable_wifi_lock, bool):
+            raise TypeError("enable_wifi_lock must be a bool")
+        self._owner = await self._call(
+            "start", id=notification_id, title=title, body=body,
+            enable_wifi_lock=enable_wifi_lock,
+        )
 
     async def stop_foreground_service(self):
         await self._call("stop")
