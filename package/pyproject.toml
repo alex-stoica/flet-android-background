@@ -1,6 +1,6 @@
 [project]
 name = "flet-android-background"
-version = "0.0.2"
+version = "0.0.3"
 description = "Experimental foreground tasks for Flet on Android"
 readme = "README.md"
 license = "MIT"

@@ -1,6 +1,6 @@
 name: flet_android_background
 description: Foreground task lifecycle for Flet Android apps
-version: 0.0.2
+version: 0.0.3
 publish_to: none
 environment:
   sdk: '>=3.11.0 <4.0.0'

@@ -30,7 +30,7 @@ wheels = [
 
 [[package]]
 name = "background-lab-workspace"
-version = "0.0.2"
+version = "0.0.3"
 source = { virtual = "." }
 dependencies = [
     { name = "flet-android-background" },
@@ -282,7 +282,7 @@ wheels = [
 
 [[package]]
 name = "flet-android-background"
-version = "0.0.2"
+version = "0.0.3"
 source = { editable = "package" }
 dependencies = [
     { name = "flet" },
